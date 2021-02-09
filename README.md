@@ -39,7 +39,7 @@ options:
 --help           Show options for this script
 --deploy-db      Deploy the database.
 --deploy         Deploy the application.
---deploy-all     Deploy the application.
+--deploy-all     Deploy the entire application.
 --delete         Delete the nginx deployment.
 --delete-all     Delete entire deployment.
 --scale          Scale the application - example: --scale 4

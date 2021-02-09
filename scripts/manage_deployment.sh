@@ -40,6 +40,7 @@ function deploy() {
 
 function deploy_all() {
   echo "Deploying Host-Monitor..."
+  deploy_db
   kubectl apply -f templates/ --validate=false;
 }
 
