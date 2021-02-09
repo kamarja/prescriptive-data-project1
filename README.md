@@ -62,16 +62,17 @@ pkill -HUP postgres
 ./scripts/manage_deployment.sh --deploy TRUE
 
 ```
+### Viewing the UI
 
 - At this point, open a browser at `pdata.world`.
 The hosts should now be visible. The page should automatically update if you scale the application.
 
-# Scale 
+### Scale 
 
 ```bash
 ./scripts/manage_deployment.sh --scale 4
 ```
-# Delete the application.
+### Delete the application.
 ```bash
 ./scripts/manage_deployment.sh --delete TRUE
 ```
