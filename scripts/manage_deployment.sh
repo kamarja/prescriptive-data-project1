@@ -6,6 +6,7 @@ function usage() {
     echo "options:"
     echo -e "--help \t Show options for this script"
     echo -e "--deploy \t Deploy the application."
+    echo -e "--deploy-db \t Deploy the database."
     echo -e "--deploy-all \t Deploy the entire application."
     echo -e "--delete \t Delete the nginx deployment."
     echo -e "--delete-all \t Delete entire deployment."
@@ -34,6 +35,7 @@ function deploy() {
   echo "Deploying Host-Monitor..."
   kubectl apply -f templates/nginx-flask-deployment.yml --validate=false;
   kubectl apply -f templates/nginx-flask-service.yml 
+  kubectl apply -f templates/nginx-ingress.yml
 }
 
 function deploy_all() {
@@ -46,6 +48,23 @@ function scale_application() {
   kubectl scale --replicas=${SCALE} -f templates/nginx-flask-deployment.yml
 }
 
+function deploy_db() {
+  echo "Deploying Database..."
+  kubectl apply -f templates/nginx-flask-deployment.yml --validate=false;
+  kubectl apply -f templates/nginx-flask-service.yml 
+  kubectl apply -f templates/persistent-volume.yml
+  kubectl apply -f templates/persistent-volume-claim.yml
+  kubectl apply -f templates/secret.yml
+  kubectl apply -f templates/postgres-configmap.yml
+  kubectl apply -f templates/postgres-deployment.yml
+  kubectl apply -f templates/postgres-service.yml
+  POSTGRES=$(kubectl get pods| grep postgres | awk {'print $1'})
+  kubectl exec -it $POSTGRES -- bash -c 'echo "host    all             all             172.17.0.0/16            trust" >> /var/lib/postgresql/data/pg_hba.conf;'
+  kubectl exec -it $POSTGRES -- bash -c 'echo "host    all             all             10.0.0.0/24            trust" >> /var/lib/postgresql/data/pg_hba.conf; pkill -HUP postgres'
+}
+
+
+
 function remove_stale_hosts() {
   POSTGRES=$(kubectl get pods| grep postgres | awk {'print $1'})
   kubectl cp ./scripts/clear_table.sql "$POSTGRES":/tmp/clear_table.sql
@@ -53,7 +72,7 @@ function remove_stale_hosts() {
 }
 
 # Read the options from cli input
-TEMP=`getopt -o h --longoptions help,deploy:,deploy-all:,delete:,delete-all:,scale: -n $0 -- "$@"`
+TEMP=`getopt -o h --longoptions help,deploy:,deploy-db:,deploy-all:,delete:,delete-all:,scale: -n $0 -- "$@"`
 eval set -- "${TEMP}"
 
 if [[ $# == 1 ]]; then echo "No input provided! type ($0 --help) to see usage help" >&2 ; exit 1 ; fi
@@ -67,6 +86,10 @@ while true; do
             ;;
         --deploy)
             DEPLOY="$2";
+            shift 2
+            ;;
+        --deploy-db)
+            DEPLOY_DB="$2";
             shift 2
             ;;
         --delete)
@@ -100,6 +123,10 @@ fi
 
 if [[ ${DEPLOY_ALL} == "TRUE" ]];then
   deploy_all
+fi
+
+if [[ ${DEPLOY_DB} == "TRUE" ]];then
+  deploy_db
 fi
 
 if [[ ${DELETE} == "TRUE" ]];then
