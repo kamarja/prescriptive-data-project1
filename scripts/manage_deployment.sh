@@ -6,21 +6,28 @@ function usage() {
     echo "options:"
     echo -e "--help \t Show options for this script"
     echo -e "--deploy \t Deploy the application."
-    echo -e "--deploy-all \t Deploy the application."
+    echo -e "--deploy-all \t Deploy the entire application."
     echo -e "--delete \t Delete the nginx deployment."
     echo -e "--delete-all \t Delete entire deployment."
     echo -e "--scale \t Scale the application - example: --scale 4"
 }
 
 function delete_deployment() {
+  echo "Clearing db table"
+  remove_stale_hosts
+
   echo "Removing deployment Host-Monitor..."
   kubectl delete -f templates/nginx-flask-deployment.yml;
   kubectl delete -f templates/nginx-flask-service.yml 
 }
 
 function delete_all() {
+  echo "Clearing db table"
+  remove_stale_hosts
+
   echo "Removing entire deployment."
-  #kubectl delete -f templates/
+  remove_stale_hosts
+  kubectl delete -f templates/
 }
 
 function deploy() {
@@ -39,11 +46,15 @@ function scale_application() {
   kubectl scale --replicas=${SCALE} -f templates/nginx-flask-deployment.yml
 }
 
+function remove_stale_hosts() {
+  POSTGRES=$(kubectl get pods| grep postgres | awk {'print $1'})
+  kubectl cp ./scripts/clear_table.sql "$POSTGRES":/tmp/clear_table.sql
+  kubectl exec -it $POSTGRES -- bash -c 'psql -U postgres -d hosts -f /tmp/clear_table.sql'
+}
+
 # Read the options from cli input
 TEMP=`getopt -o h --longoptions help,deploy:,deploy-all:,delete:,delete-all:,scale: -n $0 -- "$@"`
 eval set -- "${TEMP}"
-
-echo "Check: ${TEMP}"
 
 if [[ $# == 1 ]]; then echo "No input provided! type ($0 --help) to see usage help" >&2 ; exit 1 ; fi
 
@@ -62,11 +73,11 @@ while true; do
             DELETE="$2";
             shift 2
             ;;
-        --deploy_all)
+        --deploy-all)
             DEPLOY_ALL="$2";
             shift 2
             ;;
-        --delete_all)
+        --delete-all)
             DELETE_ALL="$2";
             shift 2
             ;;
@@ -98,7 +109,7 @@ fi
 
 if [[ ${DELETE_ALL} == "TRUE" ]];then
   echo "running delete_all"
-  #delete_all
+  delete_all
 fi
 
 if [[ -n ${SCALE} ]]; then

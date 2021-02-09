@@ -41,3 +41,19 @@ options:
 --delete-all     Delete entire deployment.
 --scale          Scale the application - example: --scale 4
 ```
+
+## Demo
+- After running the setup script, run the following commands.
+
+```bash
+./scripts/manage_deployment.sh --delete TRUE
+./scripts/manage_deployment.sh --deploy TRUE
+./scripts/manage_deployment.sh --scale 4
+./scripts/manage_deployment.sh --delete TRUE
+```
+
+## TODO
+- Possible improvements
+  - Setup a hook so that each pod remove their entry from the db before shutting down.
+  - Add `vault` to the application to store secrets.
+  - Implement feature to `scale` pods by a certain value when the add button is clicked.
